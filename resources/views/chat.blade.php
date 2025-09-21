@@ -10,7 +10,16 @@
 </head>
 <body>
     <div class="container mt-5">
-        <h1>Chat with {{ $receiver->name }}</h1>
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h1>Chat with {{ $receiver->name }}</h1>
+            <div>
+                <a href="{{ route('users') }}" class="btn btn-outline-primary me-2">Back to Users</a>
+                <form method="POST" action="{{ route('logout') }}" style="display: inline;">
+                    @csrf
+                    <button type="submit" class="btn btn-outline-danger">Logout</button>
+                </form>
+            </div>
+        </div>
         <div id="chat-box" class="border p-3" style="height: 400px; overflow-y: scroll;">
             @foreach ($messages as $message)
                 <div class="mb-2 {{ $message->sender_id == auth()->id() ? 'text-start' : 'text-end' }}">

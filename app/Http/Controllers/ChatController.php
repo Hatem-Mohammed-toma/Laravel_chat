@@ -66,4 +66,16 @@ class ChatController extends Controller
         return response()->json(['status' => 'Offline']);
     }
 
+    public function logout()
+    {
+        // Set user offline before logout
+        Cache::forget('user-is-online-' . Auth::id());
+        
+        // Logout the user
+        Auth::logout();
+        
+        // Redirect to login page
+        return redirect()->route('login')->with('status', 'You have been logged out successfully.');
+    }
+
 }

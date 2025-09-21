@@ -21,4 +21,5 @@ Route::middleware('auth')->group(function (){
     Route::post('/chat/typing', [ChatController::class, 'typing']);
     Route::post('/online', [ChatController::class, 'setOnline']);
     Route::post('/offline', [ChatController::class, 'setOffline']);
+    Route::post('/logout', [ChatController::class, 'logout'])->name('logout');
 });
