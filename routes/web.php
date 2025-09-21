@@ -6,7 +6,10 @@ use App\Http\Controllers\ChatController;
 
 Route::get('/', fn() => redirect()->route('login'));
 
-Auth::routes();
+// Apply guest middleware to auth routes
+Route::middleware('guest')->group(function () {
+    Auth::routes();
+});
 
 // Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
 

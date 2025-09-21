@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Chat with {{ $receiver->name }}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     @vite(['resources/js/app.js'])
@@ -19,7 +20,7 @@
                 </div>
             @endforeach
         </div>
-        <div id="typing-indicator" class="mt-2 text-muted" style="display: none;">{{ $receiver->name }} is typing...</div>
+        <div id="typing-indicator" class="mt-2 text-muted" style="display: none;"><span id="typing-user-name">{{ $receiver->name }}</span> is typing...</div>
         <form id="message-form" class="mt-3">
             @csrf
             <div class="input-group">
@@ -40,14 +41,12 @@
             let typingIndicator = document.getElementById('typing-indicator');
 
             // Set user online
-            fetch('/online',
-                {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '{{ csrf_token() }}'
-                    }
+            fetch('/online', {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
                 }
-            );
+            });
 
 
             // subscribe to chat channel
@@ -66,6 +65,8 @@
             window.Echo.private('typing.' + receiverId)
                         .listen('UserTyping', (e) => {
                             if(e.typerId === receiverId){
+                                // Update the typing indicator to show the correct user name
+                                document.getElementById('typing-user-name').textContent = '{{ $receiver->name }}';
                                 typingIndicator.style.display = 'block';
                                 setTimeout(() => typingIndicator.style.display = 'none', 3000);
                             }
@@ -74,16 +75,28 @@
 
             messageForm.addEventListener('submit', function (e) {
                 e.preventDefault();
-                const message = messageInput.value;
+                e.stopPropagation();
+                
+                const message = messageInput.value.trim();
                 if (message) {
+                    // Send message to server
                     fetch(`/chat/${receiverId}/send`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
                         },
                         body: JSON.stringify({ message })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log('Message sent:', data);
+                    })
+                    .catch(error => {
+                        console.error('Error sending message:', error);
                     });
+                    
+                    // Add message to chat box immediately
                     const messageDiv = document.createElement('div');
                     messageDiv.className = 'mb-2 text-start';
                     messageDiv.innerHTML = `<span class="badge bg-primary">${message}</span>`;
@@ -91,6 +104,8 @@
                     chatBox.scrollTop = chatBox.scrollHeight;
                     messageInput.value = '';
                 }
+                
+                return false;
             });
 
             let typingTimeOut;
@@ -98,14 +113,21 @@
                 clearTimeout(typingTimeOut);
                 fetch(`/chat/typing`, {
                     method: 'POST',
-                    headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' }
+                    headers: { 
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                    }
                 });
                 typingTimeOut = setTimeout(() => {typingIndicator.style.display = 'none'}, 3000);
             });
 
             // Set user offline on window close
             window.addEventListener('beforeunload', function () {
-                fetch('/offline', { method: 'POST', headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' } });
+                fetch('/offline', { 
+                    method: 'POST', 
+                    headers: { 
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                    } 
+                });
             });
 
         });
